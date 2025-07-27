@@ -32,4 +32,28 @@ exports.login = async (req, res) => {
   }
   const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '2h' });
   res.json({ code: 0, msg: '登录成功', data: { token } });
-}; 
+};
+
+// 获取当前登录用户信息
+exports.getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await userModel.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ code: 1004, msg: '用户不存在' });
+    }
+    
+    // 不返回密码等敏感信息
+    const { password, ...userInfo } = user;
+    
+    res.json({ 
+      code: 0, 
+      msg: '获取用户信息成功', 
+      data: userInfo 
+    });
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    res.status(500).json({ code: 1005, msg: '获取用户信息失败' });
+  }
+};
