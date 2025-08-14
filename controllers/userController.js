@@ -30,7 +30,7 @@ exports.login = async (req, res) => {
   if (!match) {
     return res.json({ code: 1002, msg: '用户名或密码错误' });
   }
-  const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '2h' });
+  const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ code: 0, msg: '登录成功', data: { token } });
 };
 
