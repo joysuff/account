@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 function formatDate(date) {
   if (!date) return '';
@@ -101,4 +101,5 @@ async function getRecordById(userId, id) {
   };
 }
 
-module.exports = { addRecord, updateRecord, deleteRecord, getRecords, getRecordsCount, getRecordById }; 
+export default { addRecord, updateRecord, deleteRecord, getRecords, getRecordsCount, getRecordById };
+

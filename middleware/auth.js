@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 const JWT_SECRET = 'joysuff'; // 建议放到环境变量
 
-module.exports = function (req, res, next) {
+export default function (req, res, next) {
   const auth = req.headers['authorization'];
   if (!auth || !auth.startsWith('Bearer ')) {
     return res.status(401).json({ code: 401, msg: '未授权或token无效' });

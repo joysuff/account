@@ -1,12 +1,13 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const recordController = require('../controllers/recordController');
-const auth = require('../middleware/auth');
+import { add, update, remove, list, getById } from '../controllers/recordController.js';
 
-router.post('/records', auth, recordController.add);
-router.put('/records/:id', auth, recordController.update);
-router.delete('/records/:id', auth, recordController.remove);
-router.get('/records', auth, recordController.list);
-router.get('/records/:id', auth, recordController.getById);
+import auth from '../middleware/auth.js';
 
-module.exports = router; 
+router.post('/records', auth, add);
+router.put('/records/:id', auth, update);
+router.delete('/records/:id', auth, remove);
+router.get('/records', auth, list);
+router.get('/records/:id', auth, getById);
+
+export default router;

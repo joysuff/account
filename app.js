@@ -1,10 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const userRouter = require('./routes/user');
-const categoryRouter = require('./routes/category');
-const recordRouter = require('./routes/record');
-const statisticsRouter = require('./routes/statistics');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import userRouter from './routes/user.js';
+import categoryRouter from './routes/category.js';
+import recordRouter from './routes/record.js';
+import statisticsRouter from './routes/statistics.js';
 
 const app = express();
 app.use(cors());
@@ -15,20 +16,17 @@ app.use('/api', categoryRouter);
 app.use('/api', recordRouter);
 app.use('/api', statisticsRouter);
 
-// app.use((req, res) => {
-//   res.status(404).json({ code: 404, msg: '接口不存在' });
-// });
-
-// const PORT = 3000;
-// app.listen(PORT,'0.0.0.0', () => {
-//   console.log(`Server running at http://localhost:${PORT}`);
-// }); 
-
+// 获取 __dirname
+const __filename = fileURLToPath(import.meta.url);
+// 获取当前文件所在目录
+const __dirname = path.dirname(__filename);
 
 const frontendDistPath = path.join(__dirname, 'public/spa');
+
+
 app.use(express.static(frontendDistPath));
 
-// 3️所有非 API 路由重定向到 index.html
+// 所有非 API 路由重定向到 index.html
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(frontendDistPath, 'index.html'));

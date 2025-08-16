@@ -1,11 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const statisticsController = require('../controllers/statisticsController');
-const auth = require('../middleware/auth');
+import { daily, monthly, category, trend } from '../controllers/statisticsController.js';
+import auth from '../middleware/auth.js';
 
-router.get('/statistics/daily', auth, statisticsController.daily);
-router.get('/statistics/monthly', auth, statisticsController.monthly);
-router.get('/statistics/category', auth, statisticsController.category);
-router.get('/statistics/trend', auth, statisticsController.trend);
-
-module.exports = router; 
+router.get('/statistics/daily', auth, daily);
+router.get('/statistics/monthly', auth, monthly);
+router.get('/statistics/category', auth, category);
+router.get('/statistics/trend', auth, trend);
+export default router; 

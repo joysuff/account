@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 // 获取用户所有分类
 async function getCategories(userId) {
@@ -26,10 +26,20 @@ async function findCategory(userId, name, type) {
 
 // 通过id获取分类
 async function getCategoryById(id) {
-  const pool = require('../config/db');
   const [rows] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
   return rows[0];
 }
+// 更新分类
+async function updateCategory(userId, id, name, type) {
+  const [result] = await pool.query('UPDATE categories SET name = ?, type = ? WHERE id = ? AND user_id = ?', [name, type, id, userId]);
+  return result.affectedRows;
+}
 
-module.exports = { getCategories, addCategory, deleteCategory, findCategory };
-module.exports.getCategoryById = getCategoryById; 
+export default {
+  getCategories,
+  addCategory,
+  deleteCategory,
+  findCategory,
+  updateCategory,
+  getCategoryById,
+};

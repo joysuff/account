@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 function formatDate(date) {
   if (!date) return '';
@@ -91,7 +91,7 @@ async function getTrendStatistics(userId, days) {
   })).reverse();
 }
 
-module.exports = {
+export default {
   getDailyStatistics,
   getMonthlyStatistics,
   getCategoryStatistics,

@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 // 根据用户名查找用户
 async function findByUsername(username) {
@@ -18,4 +18,5 @@ async function findById(id) {
   return rows[0];
 }
 
-module.exports = { findByUsername, createUser, findById }; 
+export default { findByUsername, createUser, findById };
+

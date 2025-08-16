@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
   host: 'localhost', // 数据库主机
@@ -11,4 +11,4 @@ const pool = mysql.createPool({
   charset: 'utf8mb4'
 });
 
-module.exports = pool; 
+export default pool; 

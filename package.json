@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "个人记账系统后端服务",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "start": "nodemon app.js"
   },
