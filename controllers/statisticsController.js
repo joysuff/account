@@ -1,44 +1,63 @@
 import statisticsModel from '../models/statistics.js';
-
+import { success, error } from '../utils/response.js'
 
 // 当天/指定日期收支统计（含明细和汇总）
 export const daily = async (req, res) => {
-  const userId = req.user.userId;
-  const { date } = req.query;
-  if (!date) return res.json({ code: 3002, msg: '缺少日期参数' });
-  const data = await statisticsModel.getDailyStatistics(userId, date);
-
-  res.json({ code: 0, msg: '获取成功', data });
+  try {
+    const userId = req.user.userId;
+    const { date } = req.query;
+    if (!date) return error(res, 400, '缺少日期参数');
+    const data = await statisticsModel.getDailyStatistics(userId, date);
+    return success(res, 200, '获取成功', data);
+  } catch (err) {
+    console.error('获取指定日期收支统计接口错误:', err);
+    return error(res, 500, '获取失败');
+  }
 };
 
 // 每月收支总额
 export const monthly = async (req, res) => {
-  const userId = req.user.userId;
-  const { month } = req.query;
-  if (!month) return res.json({ code: 3003, msg: '缺少月份参数' });
-  const data = await statisticsModel.getMonthlyStatistics(userId, month);
-
-  res.json({ code: 0, msg: '获取成功', data });
+  try {
+    const userId = req.user.userId;
+    const { month } = req.query;
+    if (!month) return error(res, 400, '缺少月份参数');
+    const data = await statisticsModel.getMonthlyStatistics(userId, month);
+    return success(res, 200, '获取成功', data);
+  } catch (err) {
+    console.error('获取指定月份收支统计接口错误:', err);
+    return error(res, 500, '获取失败');
+  }
 };
 
 // 按分类消费占比（饼图数据）
 export const category = async (req, res) => {
-  const userId = req.user.userId;
-  const { month, type } = req.query;
-  if (!month || !type) return res.json({ code: 3004, msg: '缺少参数' });
-  const data = await statisticsModel.getCategoryStatistics(userId, month, type);
-
-  res.json({ code: 0, msg: '获取成功', data });
+  try {
+    const userId = req.user.userId;
+    const { month, type } = req.query;
+    if (!month || !type) return error(res, 400, '缺少月份或类型参数');
+    const data = await statisticsModel.getCategoryStatistics(userId, month, type);
+    if (data.length === 0) return error(res, 404, month + '月没有数据');
+    return success(res, 200, '获取成功', data);
+  } catch (err) {
+    console.error('按分类消费占比接口错误:', err);
+    return error(res, 500, '获取失败');
+  }
 };
 
 // 近N天收支趋势
 export const trend = async (req, res) => {
-  const userId = req.user.userId;
-  const days = parseInt(req.query.days) || 7; // 默认 7 天
-  const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
-  if (data.length === 0) {
-    res.json({ code: 3005, msg: '最近' + days + '天没有数据' });
-  } else {
-    res.json({ code: 0, msg: '获取成功', data });
+  try {
+    const userId = req.user.userId;
+    const days = parseInt(req.query.days) || 7; // 默认 7 天
+    if(days < 0) return error(res, 400, '最近天数不能为负数');
+    const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
+    if (data.length === 0) {
+      return error(res, 404, '最近' + days + '天没有数据');
+    } else {
+      return success(res, 200, '获取成功', data);
+    }
+  } catch (err) {
+    console.error('近N天收支趋势接口错误:', err);
+    return error(res, 500, '获取失败');
   }
 }; 

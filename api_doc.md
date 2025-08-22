@@ -378,12 +378,3 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "msg": "未授权或token无效"
 }
 ```
-
----
-
-## 6. 错误码说明
-- 1001：用户名已存在
-- 1002：用户名或密码错误
-- 2001：分类已存在
-- 3001：无数据
-- 其他：自定义 

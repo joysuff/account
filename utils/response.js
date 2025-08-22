@@ -5,8 +5,8 @@
  * @param {string} msg - 提示信息
  * @param {any} data - 返回数据
  */
-function success(res, code = 0, msg = '操作成功', data = null) {
-  res.json({ code, msg, data });
+function success(res, code = 200, msg = '操作成功', data = null) {
+  res.status(code).json({ code, msg, data });
 }
 
 /**
@@ -16,7 +16,9 @@ function success(res, code = 0, msg = '操作成功', data = null) {
  * @param {string} msg - 错误信息
  */
 function error(res, code = 500, msg = '操作失败') {
-  res.json({ code, msg });
+  res.status(code).json({ code, msg });
 }
 
 export { success, error };
+
+// TODO: 完善响应格式调用代码
