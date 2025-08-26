@@ -6,6 +6,7 @@ import userRouter from './routes/user.js';
 import categoryRouter from './routes/category.js';
 import recordRouter from './routes/record.js';
 import statisticsRouter from './routes/statistics.js';
+import analysisRouter from './routes/analysis.js'
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.use('/api', userRouter);
 app.use('/api', categoryRouter);
 app.use('/api', recordRouter);
 app.use('/api', statisticsRouter);
+app.use('/api',analysisRouter);
 
 // 获取 __dirname
 const __filename = fileURLToPath(import.meta.url);

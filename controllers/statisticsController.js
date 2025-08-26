@@ -1,6 +1,5 @@
 import statisticsModel from '../models/statistics.js';
 import { success, error } from '../utils/response.js'
-
 // 当天/指定日期收支统计（含明细和汇总）
 export const daily = async (req, res) => {
   try {
@@ -8,6 +7,7 @@ export const daily = async (req, res) => {
     const { date } = req.query;
     if (!date) return error(res, 400, '缺少日期参数');
     const data = await statisticsModel.getDailyStatistics(userId, date);
+    if (data.records.length === 0) return error(res, 404, date + '没有数据');
     return success(res, 200, '获取成功', data);
   } catch (err) {
     console.error('获取指定日期收支统计接口错误:', err);
@@ -49,13 +49,10 @@ export const trend = async (req, res) => {
   try {
     const userId = req.user.userId;
     const days = parseInt(req.query.days) || 7; // 默认 7 天
-    if(days < 0) return error(res, 400, '最近天数不能为负数');
+    if (days < 0) return error(res, 400, '最近天数不能为负数');
     const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
-    if (data.length === 0) {
-      return error(res, 404, '最近' + days + '天没有数据');
-    } else {
-      return success(res, 200, '获取成功', data);
-    }
+    if (data.length === 0) return error(res, 404, '最近' + days + '天没有数据');
+    return success(res, 200, '获取成功', data);
   } catch (err) {
     console.error('近N天收支趋势接口错误:', err);
     return error(res, 500, '获取失败');
