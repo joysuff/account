@@ -15,7 +15,7 @@ export default function (req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    console.log('token认证错误: ',err);
+    console.error('token认证错误: ',err);
     return error(res,401,'未授权或token无效');
   }
 }; 

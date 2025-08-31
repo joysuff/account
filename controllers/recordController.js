@@ -1,6 +1,9 @@
 import recordsModel from '../models/records.js';
 import categoriesModel from '../models/categories.js';
-import { success, error } from '../utils/response.js'
+import { success, error,file } from '../utils/response.js'
+import { getLocalDateTimeString } from '../utils/date.js';
+
+import {Parser} from 'json2csv'
 
 // 新增账目
 export const add = async (req, res) => {
@@ -91,11 +94,12 @@ export const list = async (req, res) => {
     const { start, end, page = 1, pageSize = 10 } = req.query;
     const pageNum = parseInt(page) > 0 ? parseInt(page) : 1;
     const size = parseInt(pageSize) > 0 ? parseInt(pageSize) : 10;
+    // 计算起始索引
     const offset = (pageNum - 1) * size;
     // 获取总数和分页数据
     const total = await recordsModel.getRecordsCount(userId, start, end);
     const data = await recordsModel.getRecords(userId, start, end, offset, size);
-    if (!data) {
+    if (data.length === 0) {
       return error(res, 404, '没有数据');
     }
     return success(res, 200, '获取成功', {
@@ -117,6 +121,9 @@ export const getById = async (req, res) => {
   try {
     const userId = req.user.userId;
     const id = req.params.id;
+    if(!id){
+      return error(res,400,'参数不完整');
+    }
     const record = await recordsModel.getRecordById(userId, id);
     if (!record) {
       return error(res, 404, '记录不存在');
@@ -128,4 +135,35 @@ export const getById = async (req, res) => {
   }
 };
 
-// TODO: 实现导出csv功能
+// 导出收支记录
+export const exportCsv = async (req,res) => {
+  try{
+    const userId = req.user.userId;
+    const {start,end} = req.query;
+    if(!start || !end){
+      return error(res,400,'参数不完整');
+    }
+    const total = await recordsModel.getRecordsCount(userId,start,end);
+    const records = await recordsModel.getRecords(userId,start,end,0,total);
+    if(records.length === 0){
+      return error(res,404,'没有数据');
+    }
+    const fields = [
+      {label:'日期',value:'date'},
+      {label:'分类',value: row => row.category.name},
+      {label:'金额',value:'amount'},
+      {label:'类型',value:'type'},
+      {label:'备注',value: row => row.remark || '无备注'},
+    ]
+    const parser = new Parser({fields});
+    const csv = parser.parse(records);
+    // 加入BOM头
+    const csvWithBom = '\uFEFF' + csv;
+    const fileName = `records_${getLocalDateTimeString()}.csv`;
+    console.log(fileName);
+    return file(res,csvWithBom,fileName)
+  }catch(err){
+    console.error('导出csv接口错误:', err);
+    return error(res, 500, '导出失败');
+  }
+}

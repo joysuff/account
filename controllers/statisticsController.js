@@ -48,7 +48,7 @@ export const category = async (req, res) => {
 export const trend = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const days = parseInt(req.query.days) || 7; // 默认 7 天
+    const days = parseInt(req.query.days) || 7;
     if (days < 0) return error(res, 400, '最近天数不能为负数');
     const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
     if (data.length === 0) return error(res, 404, '最近' + days + '天没有数据');

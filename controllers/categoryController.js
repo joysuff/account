@@ -46,7 +46,7 @@ export const remove = async (req, res) => {
     const id = req.params.id;
     const affected = await categoriesModel.deleteCategory(userId, id);
     if (affected) {
-      return success(res, 200, '删除成功');
+      return success(res, 200, '删除成功', {id: parseInt(id)});
     } else {
       return error(res, 500, '删除失败或无权限');
     }
@@ -66,7 +66,7 @@ export const update = async (req, res) => {
     }
     const exist = await categoriesModel.findCategory(userId, name, type);
     if (exist) {
-      return error(res, 409, '分类已存在');
+      return error(res, 409, '分类名称已存在');
     }
     const category = await categoriesModel.getCategoryById(id);
     if (!category) {

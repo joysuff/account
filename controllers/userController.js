@@ -26,11 +26,13 @@ export const register = async (req, res) => {
     return error(res, 500, '注册失败');
   }
 };
-
 // 登录
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    if (!username || !password) {
+      return error(res, 400, '用户名或密码不能为空')
+    }
     const user = await userModel.findByUsername(username);
     if (!user) {
       return error(res, 401, '用户名或密码错误');

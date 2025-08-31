@@ -52,7 +52,7 @@ export const monthly = async (req, res) => {
         const fullContent = await aiAnalysis(analysisData, `用户${month}月的收支数据`, (delta) => {
             sendSSE(res, 'analysis', { content: delta })
         })
-        sendSSE(res, 'end', fullContent);
+        sendSSE(res, 'end', { content: fullContent });
     } catch (err) {
         sendError(res, err);
         console.error('分析某月收支情况失败', err);
@@ -60,4 +60,30 @@ export const monthly = async (req, res) => {
         closeSSE(res);
     }
 }
+// 分析最近n天收支数据
+export const recent = async (req, res) => {
+    try {
+        initSSE(res);
+        const userId = req.user.userId;
+        const days = parseInt(req.query.days) || 7;
+        if (days < 0) {
+            sendError(res, new Error('最近天数不能为负数'));
+            return;
+        }
+        const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
+        if (data.length === 0) {
+            sendSSE(res, 'message', `最近${days}天无数据`);
+            return;
+        }
+        const fullContent = await aiAnalysis(data, `最近${days}天的收支数据`, (delta) => {
+            sendSSE(res, 'analysis', { content: delta })
+        });
+        sendSSE(res, 'end', { content: fullContent });
 
+    } catch (err) {
+        sendError(res, err);
+        console.error('分析最近n天收支数据失败', err);
+    } finally {
+        closeSSE(res);
+    }
+}
