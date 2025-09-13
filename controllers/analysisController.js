@@ -48,7 +48,7 @@ export const monthly = async (req, res) => {
             'incomeData': incomeData.length > 0 ? incomeData : "暂无收入数据",
             'expenseData': expenseData.length > 0 ? expenseData : "暂无支出数据"
         }
-        console.log(analysisData);
+        // console.log(analysisData);
         const fullContent = await aiAnalysis(analysisData, `用户${month}月的收支数据`, (delta) => {
             sendSSE(res, 'analysis', { content: delta })
         })

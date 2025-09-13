@@ -33,3 +33,19 @@ CREATE TABLE `records` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
+
+CREATE TABLE repayments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  category_id INT,
+  item VARCHAR(50) NOT NULL,           -- 支出名称（房租、会员费等）
+  amount DECIMAL(10,2) NOT NULL,       -- 金额
+  day_of_month INT NOT NULL,           -- 每月哪天提醒（1~31）
+  email VARCHAR(255) NOT NULL,         -- 提醒邮箱
+  enabled BOOLEAN DEFAULT TRUE,        -- 是否启用提醒
+  last_reminded_at DATETIME DEFAULT NULL,  -- 上次提醒日期
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (category_id) REFERENCES categories(id)
+);

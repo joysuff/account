@@ -1,13 +1,6 @@
 import pool from '../config/db.js';
+import { formatDate } from '../utils/date.js';
 
-function formatDate(date) {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 // 当天/指定日期收支统计（含明细）
 async function getDailyStatistics(userId, date) {

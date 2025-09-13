@@ -1,7 +1,7 @@
 import recordsModel from '../models/records.js';
 import categoriesModel from '../models/categories.js';
 import { success, error,file } from '../utils/response.js'
-import { getLocalDateTimeString } from '../utils/date.js';
+import { formatDateTime } from '../utils/date.js';
 
 import {Parser} from 'json2csv'
 
@@ -159,7 +159,7 @@ export const exportCsv = async (req,res) => {
     const csv = parser.parse(records);
     // 加入BOM头
     const csvWithBom = '\uFEFF' + csv;
-    const fileName = `records_${getLocalDateTimeString()}.csv`;
+    const fileName = `records_${formatDateTime(new Date())}.csv`;
     console.log(fileName);
     return file(res,csvWithBom,fileName)
   }catch(err){

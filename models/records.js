@@ -1,13 +1,5 @@
 import pool from '../config/db.js';
-
-function formatDate(date) {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+import { formatDate } from '../utils/date.js';  
 
 // 新增账目
 async function addRecord(userId, { category_id, amount, type, date, remark }) {
