@@ -55,7 +55,7 @@ async function updateRecurringPayment(userId, id, data) {
       data.amount,
       data.day_of_month,
       data.email,
-      data.enabled,
+      data.enabled || 1,
       data.last_reminded_at || null,
       id,
       userId,

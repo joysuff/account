@@ -37,7 +37,7 @@ export const addRecurringPayment = async (req, res) => {
   try {
     const userId = req.user.userId;
     const data = req.body;
-    if (!data.category_id || !data.item || !data.amount || !data.day_of_month || !data.email) {
+    if (!data.category_id || !data.item || !data.amount || !data.day_of_month || !data.email || data.enabled === undefined) {
       return error(res, 400, '参数不完整');
     }
     if (data.day_of_month < 1 || data.day_of_month > 31) {
@@ -106,6 +106,9 @@ export const getRecurringPaymentById = async (req, res) => {
   try {
     const userId = req.user.userId;
     const id = Number(req.params.id);
+    if (!id) {
+      return error(res, 400, '参数不完整');
+    }
     const repayment = await rePaymentModel.getRecurringPaymentById(userId, id);
     if (!repayment) {
       return error(res, 404, '周期性支出记录不存在');

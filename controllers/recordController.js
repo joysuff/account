@@ -11,7 +11,7 @@ export const add = async (req, res) => {
     const userId = req.user.userId;
     const { category_id, amount, type, date, remark } = req.body;
     if (!category_id || !amount || !type || !date) {
-      return res.json({ code: 400, msg: '参数不完整' });
+      return error(res, 400, '参数不完整');
     }
     // 校验分类类型和账目类型一致
     const category = await categoriesModel.getCategoryById(category_id);
@@ -24,7 +24,7 @@ export const add = async (req, res) => {
     }
     const id = await recordsModel.addRecord(userId, { category_id, amount, type, date, remark });
     if (id) {
-      return success(res, 200, '添加成功', { id });
+      return success(res, 201, '添加成功', { id });
     } else {
       return error(res, 500, '添加失败');
     }

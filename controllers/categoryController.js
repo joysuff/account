@@ -46,7 +46,7 @@ export const remove = async (req, res) => {
     const id = req.params.id;
     const affected = await categoriesModel.deleteCategory(userId, id);
     if (affected) {
-      return success(res, 200, '删除成功', {id: parseInt(id)});
+      return success(res, 200, '删除成功', { id: parseInt(id) });
     } else {
       return error(res, 500, '删除失败或无权限');
     }
@@ -64,13 +64,13 @@ export const update = async (req, res) => {
     if (!name || !type) {
       return error(res, 400, '分类名称和类型不能为空');
     }
-    const exist = await categoriesModel.findCategory(userId, name, type);
-    if (exist) {
-      return error(res, 409, '分类名称已存在');
-    }
     const category = await categoriesModel.getCategoryById(id);
     if (!category) {
       return error(res, 404, '要修改的分类不存在');
+    }
+    const exist = await categoriesModel.findCategory(userId, name, type);
+    if (exist) {
+      return error(res, 409, '分类名称已存在');
     }
     if (category.user_id !== userId) {
       return error(res, 403, '无权限修改');

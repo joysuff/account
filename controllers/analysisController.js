@@ -14,7 +14,7 @@ export const daily = async (req, res) => {
         }
         const data = await statisticsModel.getDailyStatistics(userID, date);
         if (data.records.length === 0) {
-            sendSSE(res, 'message', `${date}日无数据`);
+            sendSSE(res, 'message', {content: `${date}日无数据`});
             return;
         }
         const fullContent = await aiAnalysis(data, `用户${date}一天的账单记录`, (delta) => {
@@ -41,7 +41,7 @@ export const monthly = async (req, res) => {
         const incomeData = await statisticsModel.getCategoryStatistics(userId, month, 'income');
         const expenseData = await statisticsModel.getCategoryStatistics(userId, month, 'expense');
         if (incomeData.length === 0 && expenseData.length === 0) {
-            sendSSE(res, "message", `${month}月无收入支出账单`);
+            sendSSE(res, "message", {content: `${month}月无收入支出账单`});
             return;
         }
         const analysisData = {
@@ -72,7 +72,7 @@ export const recent = async (req, res) => {
         }
         const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
         if (data.length === 0) {
-            sendSSE(res, 'message', `最近${days}天无数据`);
+            sendSSE(res, 'message', {content: `最近${days}天无数据`});
             return;
         }
         const fullContent = await aiAnalysis(data, `最近${days}天的收支数据`, (delta) => {
