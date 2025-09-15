@@ -1,0 +1,1 @@
+import{r as t}from"./request-DPtWsdmB.js";function u(){return t({url:"/categories",method:"get"})}function a(e){return t({url:"/categories",method:"post",data:e})}function n(e,r){return t({url:`/categories/${e}`,method:"put",data:r})}function s(e){return t({url:`/categories/${e}`,method:"delete"})}export{a as c,s as d,u as g,n as u};
