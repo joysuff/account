@@ -18,11 +18,11 @@ const tasks  = new Map();
 function createMonthlyReminder(userId,id,repayment) {
     try {
         // 推送时间固定为9点
-        const task = cron.schedule(`44 20 ${repayment.day_of_month} * *`, async () => {
+        const task = cron.schedule(`00 09 ${repayment.day_of_month} * *`, async () => {
             if (repayment && Object.keys(repayment).length > 0) {
-                // await sendEmail(repayment);
+                await sendEmail(repayment);
                 const last_reminded_at = formatDateTime(new Date());
-                // await rePaymentModel.updateRecurringPaymentLastRemindedAt(userId,id,last_reminded_at);
+                await rePaymentModel.updateRecurringPaymentLastRemindedAt(userId,id,last_reminded_at);
                 console.log('邮件发送成功:',last_reminded_at);
             }
         });
