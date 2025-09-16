@@ -25,6 +25,9 @@ function createMonthlyReminder(userId,id,repayment) {
                 await rePaymentModel.updateRecurringPaymentLastRemindedAt(userId,id,last_reminded_at);
                 console.log('邮件发送成功:',last_reminded_at);
             }
+        },{
+            scheduled: true, // 立即开始调度
+            timezone: "Asia/Shanghai", // 时区设置为东八区
         });
         tasks.set(id, {task,repayment});
         return task.getStatus();

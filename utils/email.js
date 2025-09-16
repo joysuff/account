@@ -37,7 +37,7 @@ async function sendEmail(data) {
         </tbody>
       </table>
       <div style="padding:16px; text-align:center; border-top:1px solid #eee;">
-        <a href="http://your-app-url.com" style="display:inline-block; padding:10px 20px; background:#4a90e2; color:white; text-decoration:none; border-radius:4px; font-size:14px;">
+        <a href="https://record.768451.xyz/repayments" style="display:inline-block; padding:10px 20px; background:#4a90e2; color:white; text-decoration:none; border-radius:4px; font-size:14px;">
           查看详情
         </a>
       </div>
