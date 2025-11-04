@@ -1,1 +1,0 @@
-import{r as e}from"./request-DPtWsdmB.js";function o(r){return e({url:"/register",method:"post",data:r})}function n(r){return e({url:"/login",method:"post",data:r})}function i(){return e({url:"/profile",method:"get"})}export{i as g,n as l,o as r};

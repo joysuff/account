@@ -6,7 +6,7 @@ export const list = async (req, res) => {
     const userId = req.user.userId;
     const data = await categoriesModel.getCategories(userId);
     if (!data) {
-      return error(res, 404, '没有数据');
+      return success(res, 200, '分类列表为空', null);
     }
     return success(res, 200, '获取成功', data);
   } catch (err) {

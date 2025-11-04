@@ -100,7 +100,7 @@ export const list = async (req, res) => {
     const total = await recordsModel.getRecordsCount(userId, start, end);
     const data = await recordsModel.getRecords(userId, start, end, offset, size);
     if (data.length === 0) {
-      return error(res, 404, '没有数据');
+      return success(res,200,'账单记录为空',null)
     }
     return success(res, 200, '获取成功', {
       total,

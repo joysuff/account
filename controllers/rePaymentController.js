@@ -9,7 +9,7 @@ export const getRecurringPayments = async (req, res) => {
     const userId = req.user.userId;
     const repayments = await rePaymentModel.getRecurringPayments(userId);
     if (repayments.length === 0) {
-      return error(res, 404, '没有周期性支出记录');
+      return success(res, 200, '没有周期性支出记录',null);
     }
     /* 
     查看每个任务的状态
@@ -44,11 +44,10 @@ export const addRecurringPayment = async (req, res) => {
       return error(res, 400, '日期不合法');
     }
     const id = await rePaymentModel.addRecurringPayment(userId, data);
-    const repayment = { ...data, id };
     let taskStatus = null;
-    if (repayment.enabled === 1) {
+    if (data.enabled === 1) {
       // 新增定时任务
-      taskStatus = jobTool.createMonthlyReminder(userId, id, repayment);
+      taskStatus = jobTool.createMonthlyReminder(userId, id, data.day_of_month);
     }
     success(res, 201, '新增成功', { id, taskStatus });
   } catch (err) {
@@ -93,7 +92,7 @@ export const updateRecurringPayment = async (req, res) => {
 
     // 删除并重新创建任务
     const oldTaskStatus = jobTool.deleteMonthlyReminder(id);
-    const newTaskStatus = jobTool.createMonthlyReminder(userId, id, data);
+    const newTaskStatus = jobTool.createMonthlyReminder(userId, id, data.day_of_month);
     success(res, 200, '更新成功', { id, oldTaskStatus, newTaskStatus });
   } catch (err) {
     console.error(err);
@@ -139,12 +138,11 @@ export const updateRecurringPaymentEnabled = async (req, res) => {
     if (rows === 0) {
       return error(res, 404, '周期性支出记录不存在');
     }
-
     const data = await rePaymentModel.getRecurringPaymentById(userId, id);
     let taskStatus = null;
     if (enabled === 1) {
       // 新增定时任务
-      taskStatus = jobTool.createMonthlyReminder(userId, id, data);
+      taskStatus = jobTool.createMonthlyReminder(userId, id,data.day_of_month);
     } else {
       // 禁用定时任务
       taskStatus = jobTool.deleteMonthlyReminder(id);

@@ -1,5 +1,6 @@
 // 格式化时间至 YYYY-MM-DD HH:mm:ss
 function formatDateTime(date){
+  if (!date) return null; 
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth()+1).padStart(2,'0');
   const dd = String(date.getDate()).padStart(2,'0');
@@ -10,7 +11,7 @@ function formatDateTime(date){
 }
 // 格式化时间
 function formatDate(date) {
-  if (!date) return '';
+  if (!date) return null;
   const d = typeof date === 'string' ? new Date(date) : date;
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');

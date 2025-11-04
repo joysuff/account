@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { success, error } from '../utils/response.js';
 import dotenv from 'dotenv';
+import notifyModel from '../models/userNotifySettings.js';
 
 dotenv.config();
 const { JWT_SECRET,JWT_EXPIRES_IN } = process.env;
@@ -20,6 +21,9 @@ export const register = async (req, res) => {
     }
     const hash = await bcrypt.hash(password, 10);
     const userId = await userModel.createUser(username, hash);
+    // 添加默认推送配置
+    await notifyModel.addDefaultNotifySettingForUser(userId);
+    console.log(`用户【${username}】默认推送配置添加成功`);
     return success(res, 201, '注册成功', { userId });
   } catch (err) {
     console.error('注册接口错误:', err);
@@ -57,7 +61,7 @@ export const getUserProfile = async (req, res) => {
     const userId = req.user.userId;
     const user = await userModel.findById(userId);
     if (!user) {
-      return error(res, 404, '用户不存在');
+      return success(res, 200, '用户不存在', null);
     }
     // 不返回密码等敏感信息
     const { password, ...userInfo } = user;

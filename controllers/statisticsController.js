@@ -7,7 +7,7 @@ export const daily = async (req, res) => {
     const { date } = req.query;
     if (!date) return error(res, 400, '缺少日期参数');
     const data = await statisticsModel.getDailyStatistics(userId, date);
-    if (data.records.length === 0) return error(res, 404, date + '没有数据');
+    if (data.records.length === 0) return success(res, 200, date + '没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
     console.error('获取指定日期收支统计接口错误:', err);
@@ -36,7 +36,7 @@ export const category = async (req, res) => {
     const { month, type } = req.query;
     if (!month || !type) return error(res, 400, '缺少月份或类型参数');
     const data = await statisticsModel.getCategoryStatistics(userId, month, type);
-    if (data.length === 0) return error(res, 404, month + '月没有数据');
+    if (data.length === 0) return success(res, 200, month + '月没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
     console.error('按分类消费占比接口错误:', err);
@@ -51,7 +51,7 @@ export const trend = async (req, res) => {
     const days = parseInt(req.query.days) || 7;
     if (days < 0) return error(res, 400, '最近天数不能为负数');
     const data = await statisticsModel.getTrendStatistics(userId, parseInt(days));
-    if (data.length === 0) return error(res, 404, '最近' + days + '天没有数据');
+    if (data.length === 0) return success(res, 200, '最近' + days + '天没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
     console.error('近N天收支趋势接口错误:', err);

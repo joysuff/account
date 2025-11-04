@@ -57,9 +57,9 @@ async function sendEmail(data) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('提醒邮件已发送:', info.messageId);
+    console.log('邮件发送结果:', info.messageId);
   } catch (err) {
-    console.error('发送失败:', err);
+    console.error('邮件发送失败:', err);
   }
 }
 
