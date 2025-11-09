@@ -35,11 +35,12 @@ async function addDefaultNotifySettingForUser(userId) {
 }
 
 
-// 获取所有推送方式
-async function getAllNotifyMethods(){
-    const [rows] = await pool.query('SELECT * FROM notify_channels');
+// 获取用户所有推送方式
+async function getAllNotifyMethods(userId){
+    const [rows] = await pool.query('SELECT * FROM user_notify_settings WHERE user_id = ?', [userId]);
     return rows;
 }
+
 // 根据id获取推送名称
 async function getNotifyMethodNameById(channelId){
     const [rows] = await pool.query(
@@ -124,5 +125,6 @@ export default {
     deleteNotifySetting,
     addNotifyMethod,
     setNotifySettingEnabled,
-    addDefaultNotifySettingForUser
+    addDefaultNotifySettingForUser,
+    getNotifyMethodNameById
 }

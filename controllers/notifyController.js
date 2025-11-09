@@ -1,14 +1,27 @@
 import notifyModel from '../models/userNotifySettings.js';
 import { success, error } from '../utils/response.js';
 
-// 获取所有推送方式
+// 获取用户所有推送方式
 export const getAllNotifyMethods = async (req,res) =>{
     try{
-        const methods = await notifyModel.getAllNotifyMethods();
+        const userId = req.user.userId;
+        const methods = await notifyModel.getAllNotifyMethods(userId);
         return success(res,200,'获取推送方式成功',methods);
     }catch(err){
         console.error('获取所有推送方式接口错误:', err);
         return error(res, 500, '获取推送方式失败');
+    }
+}
+// 根据channel_id获取推送方式名称
+export const getNotifyMethodNameByChannelId = async (req,res) =>{
+    try{
+        const {channelId} = req.params;
+        const name = await notifyModel.getNotifyMethodNameById(channelId);
+        return success(res,200,'获取推送方式名称成功',{name});
+        
+    }catch(err){
+        console.error('获取推送方式名称接口错误:', err);
+        return error(res, 500, '获取推送方式名称失败');
     }
 }
 // 获取当前用户启用的推送方式
