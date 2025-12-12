@@ -36,13 +36,18 @@ async function addDefaultNotifySettingForUser(userId) {
 
 
 // 获取用户所有推送方式
-async function getAllNotifyMethods(userId){
+async function getAllNotifyMethods(userId) {
     const [rows] = await pool.query('SELECT * FROM user_notify_settings WHERE user_id = ?', [userId]);
-    return rows;
+    const parsedRows = rows.map(row => ({
+        ...row,
+        config: JSON.parse(row.config || '{}')
+    }));
+
+    return parsedRows;
 }
 
 // 根据id获取推送名称
-async function getNotifyMethodNameById(channelId){
+async function getNotifyMethodNameById(channelId) {
     const [rows] = await pool.query(
         'SELECT name FROM notify_channels WHERE id = ?',
         [channelId]
@@ -50,7 +55,7 @@ async function getNotifyMethodNameById(channelId){
     return rows[0].name;
 }
 // 获取当前启用的推送方式(最多只会返回一条数据)
-async function getEnabledNotifyMethod(userId){
+async function getEnabledNotifyMethod(userId) {
     const [rows] = await pool.query(
         'SELECT * FROM user_notify_settings WHERE user_id = ? AND enabled = 1',
         [userId]
@@ -68,7 +73,7 @@ async function getEnabledNotifyMethod(userId){
     return res;
 }
 //添加新的推送配置
-async function addNotifySetting(userId, channelId, config){
+async function addNotifySetting(userId, channelId, config) {
     const [result] = await pool.query(
         'INSERT INTO user_notify_settings (user_id, channel_id, config) VALUES (?, ?, ?)',
         [userId, channelId, config]
@@ -78,14 +83,14 @@ async function addNotifySetting(userId, channelId, config){
 
 // 更新推送配置
 export const updateNotifySetting = async (id, userId, config) => {
-  const [result] = await pool.query(
-    'UPDATE user_notify_settings SET config = ? WHERE id = ? AND user_id = ?',
-    [JSON.stringify(config), id, userId]
-  );
-  return result.affectedRows;
+    const [result] = await pool.query(
+        'UPDATE user_notify_settings SET config = ? WHERE id = ? AND user_id = ?',
+        [JSON.stringify(config), id, userId]
+    );
+    return result.affectedRows;
 };
 // 删除推送配置
-async function deleteNotifySetting(id){
+async function deleteNotifySetting(id) {
     const [result] = await pool.query(
         'DELETE FROM user_notify_settings WHERE id = ?',
         [id]
@@ -93,8 +98,8 @@ async function deleteNotifySetting(id){
     return result.affectedRows;
 }
 // 启用/禁用推送配置
-async function setNotifySettingEnabled(userId, id, enabled){
-    if(enabled){
+async function setNotifySettingEnabled(userId, id, enabled) {
+    if (enabled) {
         // 禁用该用户的其他推送方式
         await pool.query(
             'UPDATE user_notify_settings SET enabled = 0 WHERE user_id = ? AND id != ?',
@@ -106,7 +111,7 @@ async function setNotifySettingEnabled(userId, id, enabled){
             [id]
         );
         return result.affectedRows;
-    }else{
+    } else {
         // 直接禁用该推送方式
         const [result] = await pool.query(
             'UPDATE user_notify_settings SET enabled = 0 WHERE id = ?',
@@ -114,7 +119,7 @@ async function setNotifySettingEnabled(userId, id, enabled){
         );
         return result.affectedRows;
     }
-    
+
 }
 
 export default {
