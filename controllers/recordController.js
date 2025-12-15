@@ -2,6 +2,7 @@ import recordsModel from '../models/records.js';
 import categoriesModel from '../models/categories.js';
 import { success, error,file } from '../utils/response.js'
 import { formatDateTime } from '../utils/date.js';
+import log from '../utils/log.js';
 
 import {Parser} from 'json2csv'
 
@@ -29,7 +30,7 @@ export const add = async (req, res) => {
       return error(res, 500, '添加失败');
     }
   } catch (err) {
-    console.error('新增账目接口错误:', err);
+    log.error('新增账目接口错误:', err);
     return error(res, 500, '添加失败');
   }
 
@@ -65,7 +66,7 @@ export const update = async (req, res) => {
       return error(res, 500, '修改失败或无权限');
     }
   } catch (err) {
-    console.error('编辑账目接口错误:', err);
+    log.error('编辑账目接口错误:', err);
     return error(res, 500, '修改失败');
   }
 };
@@ -82,7 +83,7 @@ export const remove = async (req, res) => {
       return error(res, 500, '删除失败或无权限');
     }
   } catch (err) {
-    console.error('删除账目接口错误:', err);
+    log.error('删除账目接口错误:', err);
     return error(res, 500, '删除失败');
   }
 };
@@ -110,7 +111,7 @@ export const list = async (req, res) => {
       records: data
     });
   } catch (err) {
-    console.error('查询账目列表接口错误:', err);
+    log.error('查询账目列表接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 
@@ -130,7 +131,7 @@ export const getById = async (req, res) => {
     }
     return success(res, 200, '获取成功', record);
   } catch (err) {
-    console.error('根据ID获取记录详情接口错误:', err);
+    log.error('根据ID获取记录详情接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 };
@@ -160,10 +161,10 @@ export const exportCsv = async (req,res) => {
     // 加入BOM头
     const csvWithBom = '\uFEFF' + csv;
     const fileName = `records_${formatDateTime(new Date())}.csv`;
-    console.log(fileName);
+    log.info(`导出csv文件: ${fileName}`);
     return file(res,csvWithBom,fileName)
   }catch(err){
-    console.error('导出csv接口错误:', err);
+    log.error('导出csv接口错误:', err.message);
     return error(res, 500, '导出失败');
   }
 }

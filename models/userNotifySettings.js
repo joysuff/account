@@ -10,25 +10,17 @@ async function addNotifyMethod(name, display_name, config_schema) {
 // 初始化推送配置
 async function addDefaultNotifySettingForUser(userId) {
     // 查询系统支持的所有通知方式
-    const [channels] = await pool.query('SELECT id, name FROM notify_channels');
+    const [channels] = await pool.query('SELECT * FROM notify_channels');
     if (!channels.length) {
-        console.warn('⚠️ 系统未初始化通知方式，请先运行initSystem脚本');
-        return;
+        return false;
     }
     // 遍历系统通知方式，为用户插入默认配置
     for (const channel of channels) {
-        let defaultConfig = {};
-        if (channel.name === 'gotify') {
-            defaultConfig = {
-                server_url: '',
-                token: ''
-            };
-        }
         // 插入用户的通知设置
         await pool.query(
             `INSERT IGNORE INTO user_notify_settings (user_id, channel_id, config)
              VALUES (?, ?, ?)`,
-            [userId, channel.id, JSON.stringify(defaultConfig)]
+            [userId, channel.id,JSON.stringify(channel.config_schema)]
         );
     }
     return true;
@@ -40,7 +32,10 @@ async function getAllNotifyMethods(userId) {
     const [rows] = await pool.query('SELECT * FROM user_notify_settings WHERE user_id = ?', [userId]);
     const parsedRows = rows.map(row => ({
         ...row,
-        config: JSON.parse(row.config || '{}')
+        config: typeof row.config === 'string'
+            ? JSON.parse(row.config)
+            : (row.config || {})
+        // config: JSON.parse(row.config || '{}')
     }));
 
     return parsedRows;

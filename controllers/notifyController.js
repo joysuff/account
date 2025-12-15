@@ -1,6 +1,8 @@
 import notifyModel from '../models/userNotifySettings.js';
 import { success, error } from '../utils/response.js';
 
+import log from '../utils/log.js';
+
 // 获取用户所有推送方式
 export const getAllNotifyMethods = async (req,res) =>{
     try{
@@ -8,7 +10,7 @@ export const getAllNotifyMethods = async (req,res) =>{
         const methods = await notifyModel.getAllNotifyMethods(userId);
         return success(res,200,'获取推送方式成功',methods);
     }catch(err){
-        console.error('获取所有推送方式接口错误:', err);
+        log.error('获取所有推送方式接口错误:', err.message);
         return error(res, 500, '获取推送方式失败');
     }
 }
@@ -20,7 +22,7 @@ export const getNotifyMethodNameByChannelId = async (req,res) =>{
         return success(res,200,'获取推送方式名称成功',{name});
         
     }catch(err){
-        console.error('获取推送方式名称接口错误:', err);
+        log.error('获取推送方式名称接口错误:', err.message);
         return error(res, 500, '获取推送方式名称失败');
     }
 }
@@ -31,7 +33,7 @@ export const getEnabledNotifyMethod = async (req,res) =>{
         const method = await notifyModel.getEnabledNotifyMethod(userId);
         return success(res,200,'获取启用推送方式成功',method);
     }catch(err){
-        console.error('获取启用推送方式接口错误:', err);
+        log.error('获取启用推送方式接口错误:', err.message);
         return error(res, 500, '获取启用推送方式失败');
     }
 }
@@ -49,7 +51,7 @@ export const updateNotifySetting = async (req,res) =>{
             return error(res, 404, '推送配置未找到');
         }
     }catch(err){
-        console.error('更新推送配置接口错误:', err);
+        log.error('更新推送配置接口错误:', err.message);
         return error(res, 500, '更新推送配置失败');
     }
 }
@@ -67,7 +69,7 @@ export const setNotifySettingEnabled = async (req,res) =>{
             return error(res, 404, '推送配置未找到');
         }
     }catch(err){
-        console.error('启用/禁用推送配置接口错误:', err);
+        log.error('启用/禁用推送配置接口错误:', err.message);
         return error(res, 500, '启用/禁用推送配置失败');
     }
 }

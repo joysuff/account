@@ -1,11 +1,13 @@
 import { aiAnalysis } from '../utils/ai.js';
 import statisticsModel from '../models/statistics.js'
 import { initSSE, sendSSE, closeSSE, sendError } from '../utils/sse.js';
+import log from '../utils/log.js';
 
 // 分析某天的收支情况
 export const daily = async (req, res) => {
     try {
         initSSE(res);
+        log.info('初始化SSE连接');
         const userID = req.user.userId;
         const { date } = req.query;
         if (!date) {
@@ -23,15 +25,17 @@ export const daily = async (req, res) => {
         sendSSE(res, 'end', { content: fullContent });
     } catch (err) {
         sendError(res, err);
-        console.error("分析某天的收支情况失败:", err);
+        log.error('分析某天的收支情况失败:', err.message);
     } finally {
         closeSSE(res);
+        log.info('关闭SSE连接');
     }
 }
 // 分析某月账单
 export const monthly = async (req, res) => {
     try {
         initSSE(res);
+        log.info('初始化SSE连接');
         const userId = req.user.userId;
         const { month } = req.query;
         if (!month) {
@@ -48,22 +52,23 @@ export const monthly = async (req, res) => {
             'incomeData': incomeData.length > 0 ? incomeData : "暂无收入数据",
             'expenseData': expenseData.length > 0 ? expenseData : "暂无支出数据"
         }
-        // console.log(analysisData);
         const fullContent = await aiAnalysis(analysisData, `用户${month}月的收支数据`, (delta) => {
             sendSSE(res, 'analysis', { content: delta })
         })
         sendSSE(res, 'end', { content: fullContent });
     } catch (err) {
         sendError(res, err);
-        console.error('分析某月收支情况失败', err);
+        log.error('分析某月收支情况失败:', err.message);
     } finally {
         closeSSE(res);
+        log.info('关闭SSE连接');
     }
 }
 // 分析最近n天收支数据
 export const recent = async (req, res) => {
     try {
         initSSE(res);
+        log.info('初始化SSE连接');
         const userId = req.user.userId;
         const days = parseInt(req.query.days) || 7;
         if (days < 0) {
@@ -82,8 +87,9 @@ export const recent = async (req, res) => {
 
     } catch (err) {
         sendError(res, err);
-        console.error('分析最近n天收支数据失败', err);
+        log.error('分析最近n天收支数据失败:', err.message);
     } finally {
         closeSSE(res);
+        log.info('关闭SSE连接');
     }
 }

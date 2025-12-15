@@ -2,6 +2,8 @@ import rePaymentModel from '../models/rePayments.js'
 import jobTool from '../utils/job.js'
 import { success, error } from '../utils/response.js'
 import { formatDateTime } from '../utils/date.js'
+import log from '../utils/log.js'
+
 
 // 查询周期性支出记录
 export const getRecurringPayments = async (req, res) => {
@@ -27,7 +29,7 @@ export const getRecurringPayments = async (req, res) => {
     })
     success(res, 200, '查询成功', repayments);
   } catch (err) {
-    console.error(err);
+    log.error('查询周期性支出记录接口错误:', err.message);
     error(res, 500, '查询失败');
   }
 }
@@ -51,7 +53,7 @@ export const addRecurringPayment = async (req, res) => {
     }
     success(res, 201, '新增成功', { id, taskStatus });
   } catch (err) {
-    console.error(err);
+    log.error('新增周期性支出记录接口错误:', err.message);
     error(res, 500, '新增失败');
   }
 }
@@ -69,7 +71,7 @@ export const deleteRecurringPayment = async (req, res) => {
     const taskStatus = jobTool.deleteMonthlyReminder(id);
     success(res, 200, '删除成功', { id, taskStatus });
   } catch (err) {
-    console.error(err);
+    log.error('删除周期性支出记录接口错误:', err.message);
     error(res, 500, '删除失败');
   }
 }
@@ -95,7 +97,7 @@ export const updateRecurringPayment = async (req, res) => {
     const newTaskStatus = jobTool.createMonthlyReminder(userId, id, data.day_of_month);
     success(res, 200, '更新成功', { id, oldTaskStatus, newTaskStatus });
   } catch (err) {
-    console.error(err);
+    log.error('更新周期性支出记录接口错误:', err.message);
     error(res, 500, '更新失败');
   }
 }
@@ -120,7 +122,7 @@ export const getRecurringPaymentById = async (req, res) => {
     repayment.created_at = formatDateTime(repayment.created_at);
     success(res, 200, '查询成功', repayment);
   } catch (err) {
-    console.error(err);
+    log.error('查询周期性支出具体信息接口错误:', err.message);
     error(res, 500, '查询失败');
   }
 }
@@ -150,7 +152,7 @@ export const updateRecurringPaymentEnabled = async (req, res) => {
     // 响应
     success(res, 200, '更新成功', { id, taskStatus });
   } catch (err) {
-    console.error(err);
+    log.error('启用/禁用周期性支出记录接口错误:', err.message);
     error(res, 500, '启用/禁用失败');
   }
 }
@@ -166,7 +168,7 @@ export const executeRecurringPayment = async (req, res) => {
     const taskStatus = jobTool.runTask(id);
     return success(res, 200, '执行成功', { id, taskStatus });
   } catch (err) {
-    console.error(err);
+    log.error('执行周期性支出记录接口错误:', err.message);
     error(res, 500, '执行/停止失败');
   }
 }
@@ -188,7 +190,7 @@ export const startStopRecurringPayment = async (req, res) => {
       return success(res, 200, '停止成功', { id, taskStatus });
     }
   } catch (err) {
-    console.error(err);
+    log.error('启动/停止周期性支出记录接口错误:', err.message);
     error(res, 500, '启动/停止失败');
   }
 }

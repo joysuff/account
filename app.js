@@ -9,6 +9,8 @@ import statisticsRouter from './routes/statistics.js';
 import analysisRouter from './routes/analysis.js';
 import rePaymentRouter from './routes/rePayments.js';
 import notifyRouter from './routes/notify.js';
+import log from './utils/log.js';
+
 
 const app = express();
 app.use(cors());
@@ -43,5 +45,5 @@ app.get('*', (req, res) => {
 
 const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  log.info(`Server running at http://localhost:${PORT}`);
 });

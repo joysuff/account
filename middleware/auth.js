@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import {error} from '../utils/response.js'
+import log from '../utils/log.js';
+
 dotenv.config();
 const { JWT_SECRET } = process.env;
 
@@ -15,7 +17,7 @@ export default function (req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    console.error('token认证错误: ',err);
+    log.error('token认证错误: ',err);
     return error(res,401,'未授权或token无效');
   }
 }; 

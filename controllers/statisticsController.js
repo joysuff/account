@@ -1,5 +1,7 @@
 import statisticsModel from '../models/statistics.js';
-import { success, error } from '../utils/response.js'
+import { success, error } from '../utils/response.js';
+import log from '../utils/log.js';
+
 // 当天/指定日期收支统计（含明细和汇总）
 export const daily = async (req, res) => {
   try {
@@ -10,7 +12,7 @@ export const daily = async (req, res) => {
     if (data.records.length === 0) return success(res, 200, date + '没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
-    console.error('获取指定日期收支统计接口错误:', err);
+    log.error('获取指定日期收支统计接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 };
@@ -24,7 +26,7 @@ export const monthly = async (req, res) => {
     const data = await statisticsModel.getMonthlyStatistics(userId, month);
     return success(res, 200, '获取成功', data);
   } catch (err) {
-    console.error('获取指定月份收支统计接口错误:', err);
+    log.error('获取指定月份收支统计接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 };
@@ -39,7 +41,7 @@ export const category = async (req, res) => {
     if (data.length === 0) return success(res, 200, month + '月没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
-    console.error('按分类消费占比接口错误:', err);
+    log.error('按分类消费占比接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 };
@@ -54,7 +56,7 @@ export const trend = async (req, res) => {
     if (data.length === 0) return success(res, 200, '最近' + days + '天没有数据',null);
     return success(res, 200, '获取成功', data);
   } catch (err) {
-    console.error('近N天收支趋势接口错误:', err);
+    log.error('近N天收支趋势接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 }; 

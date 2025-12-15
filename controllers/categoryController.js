@@ -1,5 +1,7 @@
 import categoriesModel from '../models/categories.js';
-import { success, error } from '../utils/response.js'
+import { success, error } from '../utils/response.js';
+import log from '../utils/log.js';
+
 // 获取分类列表
 export const list = async (req, res) => {
   try {
@@ -10,7 +12,7 @@ export const list = async (req, res) => {
     }
     return success(res, 200, '获取成功', data);
   } catch (err) {
-    console.error('获取分类列表接口错误:', err);
+    log.error('获取分类列表接口错误:', err.message);
     return error(res, 500, '获取失败');
   }
 };
@@ -34,7 +36,7 @@ export const add = async (req, res) => {
       return error(res, 500, '添加失败');
     }
   } catch (err) {
-    console.error('新增分类接口错误:', err);
+    log.error('新增分类接口错误:', err.message);
     return error(res, 500, '添加失败');
   }
 };
@@ -51,7 +53,7 @@ export const remove = async (req, res) => {
       return error(res, 500, '删除失败或无权限');
     }
   } catch (err) {
-    console.error('删除分类接口错误:', err);
+    log.error('删除分类接口错误:', err.message);
     return error(res, 500, '删除失败');
   }
 };
@@ -83,7 +85,7 @@ export const update = async (req, res) => {
       return error(res, 500, '修改失败或无权限');
     }
   } catch (err) {
-    console.error('修改分类接口错误:', err);
+    log.error('修改分类接口错误:', err.message);
     return error(res, 500, '修改失败');
   }
 };

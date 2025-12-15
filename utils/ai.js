@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import dotenv from "dotenv";
+import log from "./log.js";
 dotenv.config();
 
 const client = new OpenAI({
@@ -40,7 +41,7 @@ async function aiAnalysis(data, dataType, onDelta) {
         }
         return fullContent;
     } catch (err) {
-        console.error('AI分析函数错误:', err);
+        log.error(`AI 分析失败：${err.message}`);
         return '分析失败';
     }
 }

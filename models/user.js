@@ -16,6 +16,11 @@ async function findById(id) {
   const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
   return rows[0];
 }
+// 删除用户
+async function deleteUser(id) {
+  const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
+  return result.affectedRows > 0;
+}
 
-export default { findByUsername, createUser, findById };
+export default { findByUsername, createUser, findById, deleteUser };
 
