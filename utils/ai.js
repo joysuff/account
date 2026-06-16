@@ -5,7 +5,11 @@ dotenv.config();
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.API_BASE_URL
+    baseURL: process.env.API_BASE_URL,
+    defaultHeaders: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+    }
 });
 const aiAnalysisPrompt = `你是一个专业的账单数据分析师，负责分析用户的收支数据。  
 你的任务是根据用户提供的账单信息给出简短、合理的建议，内容应当：
