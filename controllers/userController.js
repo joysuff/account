@@ -81,3 +81,29 @@ export const getUserProfile = async (req, res) => {
     return error(res, 500, '获取用户信息失败');
   }
 };
+
+// 修改密码
+export const updatePassword = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return error(res, 400, '旧密码或新密码不能为空');
+    }
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return error(res, 404, '用户不存在');
+    }
+    const match = await bcrypt.compare(oldPassword, user.password);
+    if (!match) {
+      return error(res, 401, '旧密码错误');
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await userModel.updateUser(userId, hash);
+    log.info(`用户[${user.username}]密码修改成功`);
+    return success(res, 200, '密码修改成功');
+  } catch (err) {
+    log.error(`用户[${user.username}]修改密码失败:`, err.message);  
+    return error(res, 500, '修改密码失败');
+  }
+};

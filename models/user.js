@@ -21,6 +21,11 @@ async function deleteUser(id) {
   const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
   return result.affectedRows > 0;
 }
+// 更新用户密码
+async function updateUser(id, password) {
+  const [result] = await pool.query('UPDATE users SET password=? WHERE id=?', [password, id]);
+  return result.affectedRows > 0;
+}
 
-export default { findByUsername, createUser, findById, deleteUser };
+export default { findByUsername, createUser, findById, deleteUser, updateUser };
 
