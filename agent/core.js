@@ -37,13 +37,31 @@ export async function runAgent(userId, userMessage, onEvent, history = []) {
   ];
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await client.chat.completions.create({
-      model: process.env.API_MODEL,
-      messages,
-      tools,
-      tool_choice: "auto",
-    });
-
+    let response;
+    try {
+      response = await client.chat.completions.create({
+        model: process.env.API_MODEL,
+        messages,
+        tools,
+        tool_choice: "auto",
+      });
+    } catch (err) {
+      // 400 通常是上下文过长，截断历史后重试一次
+      if (err.status === 400 && messages.length > 5) {
+        log.warn(`请求400，上下文过长(${messages.length}条)，截断历史重试`);
+        // 保留 system prompt + 最近10条消息
+        messages = [messages[0], ...messages.slice(-10)];
+        response = await client.chat.completions.create({
+          model: process.env.API_MODEL,
+          messages,
+          tools,
+          tool_choice: "auto",
+        });
+      } else {
+        throw err;
+      }
+    }
+  
     const msg = response.choices[0].message;
 
     // Token用量
@@ -57,10 +75,15 @@ export async function runAgent(userId, userMessage, onEvent, history = []) {
     if (msg.tool_calls?.length) {
       const toolNames = msg.tool_calls.map(tc => tc.function.name).join(", ");
       log.info(`迭代${i + 1} LLM决定调用工具: ${toolNames}`);
-
-      messages.push({ role: "assistant", content: msg.content || null, tool_calls: msg.tool_calls });
-
-      for (const tc of msg.tool_calls) {
+    
+      const limited = msg.tool_calls.slice(0, 10);  // ← 改名
+      if (msg.tool_calls.length > 10) {
+        log.warn(`工具调用过多(${msg.tool_calls.length})，仅执行前10个`);
+      }
+    
+      messages.push({ role: "assistant", content: msg.content || null, tool_calls: limited });
+    
+      for (const tc of limited) {
         const fnName = tc.function.name;
         let fnArgs;
         try { fnArgs = JSON.parse(tc.function.arguments); } catch {
