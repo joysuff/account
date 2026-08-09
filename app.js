@@ -9,6 +9,7 @@ import statisticsRouter from './routes/statistics.js';
 import analysisRouter from './routes/analysis.js';
 import rePaymentRouter from './routes/rePayments.js';
 import notifyRouter from './routes/notify.js';
+import agentRouter from './routes/agent.js';
 import log from './utils/log.js';
 
 
@@ -23,6 +24,7 @@ app.use('/api', statisticsRouter);
 app.use('/api',analysisRouter);
 app.use('/api', rePaymentRouter);
 app.use('/api', notifyRouter);
+app.use('/api', agentRouter); 
 
 // 获取 __dirname
 const __filename = fileURLToPath(import.meta.url);
