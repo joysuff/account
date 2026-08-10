@@ -18,6 +18,10 @@ dotenv.config();
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.API_BASE_URL,
+  defaultHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+  }
 });
 
 const MAX_ITERATIONS = 10;
