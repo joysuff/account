@@ -1437,8 +1437,14 @@ CSV文件包含以下字段：
 
 | 参数名    | 类型   | 必填 | 说明                                               |
 | --------- | ------ | ---- | -------------------------------------------------- |
-| message   | string | 是   | 用户消息（自然语言描述，如"今天午饭花了35元"）     |
+| message   | string | 否   | 用户消息（自然语言描述，如"今天午饭花了35元"）。**确认回复请求时不需要此字段** |
 | sessionId | string | 否   | 会话ID，首次请求不传，后续传上次SSE返回的sessionId |
+| confirmId | string | 否   | 确认ID。用户对写操作确认弹窗做出决策时携带（此时不需要message） |
+| action    | string | 否   | 确认决策：`confirm`=确认执行，`cancel`=取消。仅配合 confirmId 使用 |
+
+> **两种请求模式**：
+> - **普通对话**：只传 `message`（首次可不带 sessionId）。
+> - **写操作确认回复**：传 `confirmId` + `action`（`confirm` 或 `cancel`）+ `sessionId`，无需传 `message`。
 
 **请求示例**：
 
@@ -1455,6 +1461,14 @@ CSV文件包含以下字段：
   "sessionId": "1_1786287100612_6nnsih"
 }
 ```
+写操作确认回复（用户点击「确认执行」）：
+```json
+{
+  "sessionId": "1_1786287100612_6nnsih",
+  "confirmId": "1736900000000_abcd12",
+  "action": "confirm"
+}
+```
 **响应格式**：Server-Sent Events (SSE)
 **事件类型**：
 
@@ -1464,24 +1478,44 @@ CSV文件包含以下字段：
 | tool_start | Agent开始调用工具        | `{"name": "add_record", "arguments": {...}}`    |
 | tool_end   | 工具调用完成             | `{"name": "add_record", "result": {...}}`       |
 | tool_error | 工具调用出错             | `{"name": "add_record", "error": "错误描述"}`   |
-| message    | AI文本回复               | `{"content": "已记录：今天 餐饮 -35元"}`        |
-| end        | 对话结束                 | `{"content": "完整回复内容"}`                   |
+| tool_canceled | 写操作被用户取消      | `{"name": "delete_record"}`                     |
+| confirm    | 请求用户确认写操作       | `{"confirmId": "...", "name": "delete_record, update_record", "description": "删除 ID 为 12 的记账记录"}` |
+| message    | AI回复的流式增量（逐字/逐段，会连续返回多条） | `{"content": "已"}`、`{"content": "记录"}`… |
+| end        | 对话结束（仅作结束信号，无内容字段） | `{}`                                   |
 | error      | 请求级错误               | `{"message": "错误描述"}`                       |
+
+> **流式输出说明**：AI 的最终回复通过**多条 `message` 事件**逐字（逐 token）推送，前端需将每个 `message` 事件的 `content` 增量**累加拼接**，实现打字机般逐字显示效果。`end` 事件仅作为"回复结束"信号，其数据为空对象 `{}`，不再携带完整内容。
+
+> **写操作确认机制**：`update_record`、`delete_record` 属于高风险写操作。Agent 在准备执行前会通过 `confirm` 事件返回 `confirmId` 和操作描述，**暂停执行**（本轮 SSE 在发出 confirm 事件后即结束，不发 `end`）。前端需弹出确认框让用户选择；用户做出选择后，前端发起**第二次请求**（带 `confirmId` + `action`），后端据此执行（`confirm`）或取消（`cancel`）并继续生成回复。
+
 **对话流程示例**：
 
-1. 用户发送 `{"message": "删除昨天午餐记录"}`
-2. SSE返回：
+1. 用户发送 `{"message": "删除 ID 为 12 的记账记录"}`
+2. SSE返回（命中写操作，请求确认后结束）：
    ```
    session{"sessionId":"1_xxx"}
-   tool_start{"name":"query_records","arguments":{"start":"2026-08-08","end":"2026-08-08"}}
-   tool_end{"name":"query_records","result":{...}}
-   message{"content": "**已记录**：今天 餐饮 **-35元**"}
-   end{"content": "**完整回复内容**（可能包含加粗、列表等 Markdown）"}
+   confirm{"confirmId":"1736900000000_abcd12","name":"delete_record","description":"删除 ID 为 12 的记账记录"}
    ```
-3. 用户发送 `{"message": "确认", "sessionId": "1_xxx"}`
-4. Agent在上下文中继续执行删除操作
+3. 用户点击「确认执行」，前端发起第二次请求 `{"sessionId":"1_xxx","confirmId":"1736900000000_abcd12","action":"confirm"}`
+4. SSE返回（执行工具 + 流式回复）：
+   ```
+   tool_start{"name":"delete_record","arguments":{"id":12}}
+   tool_end{"name":"delete_record","result":{...}}
+   message{"content":"已"}
+   message{"content":"删除"}
+   ...
+   message{"content":" ID 为 12 的记录"}
+   end{}
+   ```
+5. 若用户点击「取消」，步骤3改为 `"action":"cancel"`，后端返回 `tool_canceled` 并生成"已取消"回复：
+   ```
+   tool_canceled{"name":"delete_record"}
+   message{"content":"已取消"}
+   message{"content":"删除操作"}
+   end{}
+   ```
 
-> **注意**：`message` 和 `end` 事件的 `content` 字段可能包含 Markdown 语法（加粗、代码块、列表等），前端需自行渲染。
+> **注意**：多条 `message` 事件的 `content` 片段拼接后即为完整回复，且可能包含 Markdown 语法（加粗、代码块、列表等），前端需在流式结束后自行渲染。由于 Markdown 在流式过程中是不完整的，建议在 `end` 事件到达后再渲染，或实时渲染但容忍中间状态。
 
 **Agent支持的操作**：
 

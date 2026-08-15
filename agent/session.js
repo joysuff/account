@@ -15,7 +15,7 @@ setInterval(() => {
 /** 创建新会话，返回sessionId */
 export function createSession(userId) {
   const id = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  sessions.set(id, { userId, messages: [], lastAccess: Date.now() });
+  sessions.set(id, { userId, messages: [], pending: null, lastAccess: Date.now() });
   return id;
 }
 
