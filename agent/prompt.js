@@ -2,7 +2,7 @@
  * AI记账助手系统提示词
  */
 export function getSystemPrompt() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('fr-CA', { timeZone: 'Asia/Shanghai' });
   return `你是一个专业的个人记账助手，帮助用户通过自然语言管理他们的收支记录。
 
 ## 当前日期
