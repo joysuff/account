@@ -66,16 +66,13 @@ export const update = async (req, res) => {
     if (!name || !type) {
       return error(res, 400, '分类名称和类型不能为空');
     }
-    const category = await categoriesModel.getCategoryById(id);
+    const category = await categoriesModel.getCategoryById(userId, id);
     if (!category) {
       return error(res, 404, '要修改的分类不存在');
     }
     const exist = await categoriesModel.findCategory(userId, name, type);
     if (exist) {
       return error(res, 409, '分类名称已存在');
-    }
-    if (category.user_id !== userId) {
-      return error(res, 403, '无权限修改');
     }
     const affected = await categoriesModel.updateCategory(userId, id, name, type);
 

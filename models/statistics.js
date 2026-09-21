@@ -1,5 +1,5 @@
 import pool from '../config/db.js';
-import { formatDate } from '../utils/date.js';
+import { formatDate, getShanghaiDate } from '../utils/date.js';
 
 
 // 当天/指定日期收支统计（含明细）
@@ -65,16 +65,20 @@ async function getCategoryStatistics(userId, month, type) {
 
 // 近N天收支趋势
 async function getTrendStatistics(userId, days) {
+  const today = getShanghaiDate();
+  const start = new Date(`${today}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  const startDate = start.toISOString().slice(0, 10);
   const [rows] = await pool.query(
     `SELECT date, 
       SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as income,
       SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expense
      FROM records
-     WHERE user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+     WHERE user_id = ? AND date >= ? AND date <= ?
      GROUP BY date
      ORDER BY date DESC
      LIMIT ?`,
-    [userId, days-1, days]
+    [userId, startDate, today, days]
   );
   // 格式化日期
   return rows.map(row => ({
@@ -89,4 +93,4 @@ export default {
   getMonthlyStatistics,
   getCategoryStatistics,
   getTrendStatistics
-}; 
+};

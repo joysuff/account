@@ -25,8 +25,8 @@ async function findCategory(userId, name, type) {
 }
 
 // 通过id获取分类
-async function getCategoryById(id) {
-  const [rows] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
+async function getCategoryById(userId, id) {
+  const [rows] = await pool.query('SELECT * FROM categories WHERE id = ? AND user_id = ?', [id, userId]);
   return rows[0];
 }
 // 更新分类

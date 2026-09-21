@@ -49,6 +49,11 @@ export const chat = async (req, res) => {
 
     // 阶段二：用户在确认框做出决策后恢复执行
     if (confirmId) {
+      // 防止 sessionId 泄露后被其他用户代为确认写操作
+      if (session.userId !== userId) {
+        sendError(res, new Error("会话不属于当前用户"));
+        return;
+      }
       const pending = session.pending;
       if (!pending || pending.confirmId !== confirmId) {
         sendError(res, new Error("确认已过期或不存在，请重新发起请求"));
@@ -67,6 +72,8 @@ export const chat = async (req, res) => {
         // 恢复过程中又遇到新的写操作，继续挂起（理论上单次确认不会连续命中，但保持健壮）
         session.pending = result.pending;
         session.messages = result.messages;
+        // 防止长时间等待确认时会话被 GC 清理
+        session.lastAccess = Date.now();
       }
       session.lastAccess = Date.now();
       return;
@@ -78,7 +85,8 @@ export const chat = async (req, res) => {
       return;
     }
 
-    log.info(`Agent收到用户${userId}消息: ${message.trim()}`);
+    // 不记录完整对话正文，避免账单备注等个人信息进入服务日志。
+    log.info(`Agent收到用户${userId}消息（${message.trim().length}字符）`);
 
     const result = await runAgent(userId, message.trim(), onEvent, session.messages);
 

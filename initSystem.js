@@ -12,7 +12,7 @@ async function init() {
 
     for (const method of notifyMethods) {
       const exists = await pool.query('SELECT id FROM notify_channels WHERE name = ?', [method.name]);
-      if (!exists[0].length) {
+      if (!exists?.[0]?.length) {
         await notifyModel.addNotifyMethod(method.name, method.display_name, method.config_schema);
       }
     }

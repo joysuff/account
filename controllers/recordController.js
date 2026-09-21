@@ -15,7 +15,7 @@ export const add = async (req, res) => {
       return error(res, 400, '参数不完整');
     }
     // 校验分类类型和账目类型一致
-    const category = await categoriesModel.getCategoryById(category_id);
+    const category = await categoriesModel.getCategoryById(userId, category_id);
 
     if (!category) {
       return error(res, 404, '分类不存在');
@@ -51,7 +51,7 @@ export const update = async (req, res) => {
       return error(res, 404, '记录不存在');
     }
     // 校验分类是否存在
-    const category = await categoriesModel.getCategoryById(category_id);
+    const category = await categoriesModel.getCategoryById(userId, category_id);
     if (!category) {
       return error(res, 404, '分类不存在');
     }

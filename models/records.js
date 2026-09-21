@@ -26,7 +26,7 @@ async function deleteRecord(userId, id) {
 }
 
 // 查询账目列表（分页，带分类信息，start/end可选）
-async function getRecords(userId, start, end, offset = 0, limit = 10) {
+async function getRecords(userId, start, end, offset = 0, limit = 10, type) {
   let sql = `SELECT r.id, r.amount, r.type, r.date, r.remark, 
             c.id as category_id, c.name as category_name, c.type as category_type
      FROM records r
@@ -40,6 +40,10 @@ async function getRecords(userId, start, end, offset = 0, limit = 10) {
   if (end) {
     sql += ' AND r.date <= ?';
     params.push(end);
+  }
+  if (type) {
+    sql += ' AND r.type = ?';
+    params.push(type);
   }
   sql += ' ORDER BY r.date DESC, r.id DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
@@ -55,7 +59,7 @@ async function getRecords(userId, start, end, offset = 0, limit = 10) {
 }
 
 // 查询总数（start/end可选）
-async function getRecordsCount(userId, start, end) {
+async function getRecordsCount(userId, start, end, type) {
   let sql = 'SELECT COUNT(*) as count FROM records WHERE user_id = ?';
   const params = [userId];
   if (start) {
@@ -65,6 +69,10 @@ async function getRecordsCount(userId, start, end) {
   if (end) {
     sql += ' AND date <= ?';
     params.push(end);
+  }
+  if (type) {
+    sql += ' AND type = ?';
+    params.push(type);
   }
   const [rows] = await pool.query(sql, params);
   return rows[0].count;

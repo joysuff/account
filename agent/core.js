@@ -13,7 +13,7 @@ import dotenv from "dotenv";
 import { getSystemPrompt } from "./prompt.js";
 import { tools } from "./tool.js";
 import { executeTool } from "./tool-exe.js";
-import { validateToolCall } from "./safety.js";
+import { normalizeToolArgs, validateToolCall } from "./safety.js";
 import recordsModel from "../models/records.js";
 import log from "../utils/log.js";
 
@@ -31,7 +31,19 @@ const client = new OpenAI({
 const MAX_ITERATIONS = 10;
 
 // 需要用户确认后才能执行的写操作工具
-const CONFIRM_TOOLS = ["update_record", "delete_record"];
+// 所有改变用户数据的操作均需显式确认；确认不替代服务端授权校验。
+const CONFIRM_TOOLS = ["add_category", "add_record", "update_record", "delete_record"];
+const INTERNAL_OUTPUT_PATTERN = /(?:系统提示|system prompt|工具(?:名称|列表|定义|schema)|函数(?:名称|列表|定义)|内部(?:函数|工具|提示)|(?:function|tool)\s*(?:call|calling)|\b(?:all|list)\s*(?:tools|functions)\b)/i;
+const INTERNAL_REQUEST_PATTERN = /(?:能(?:调用|使用)?什么(?:函数|工具)|列出.*(?:函数|工具)|(?:函数|工具).*(?:列表|名称|定义)|(?:系统提示|prompt).*(?:内容|是什么|给我)|what (?:functions?|tools?) (?:can|do) you|list .*?(?:functions?|tools?)|system prompt)/i;
+const INTERNAL_DISCLOSURE_REPLY = "我可以协助分类管理、记账、账单查询和收支统计。请直接告诉我需要处理的账务内容。";
+
+function displayToolName(name) {
+  return ({ get_categories: "查看分类", add_category: "创建分类", add_record: "新增账单", query_records: "查询账单", update_record: "修改账单", delete_record: "删除账单", get_statistics: "查看统计" })[name] || "账务操作";
+}
+
+function containsInternalOutput(content) {
+  return typeof content === "string" && INTERNAL_OUTPUT_PATTERN.test(content);
+}
 
 // 取消工具调用时，反馈给 LLM 的结果，让其生成"已取消"之类的回复
 function canceledToolResult(fnName) {
@@ -62,6 +74,15 @@ function looksLikeToolCallText(content) {
  * @returns {{ status: "done", content: string, messages: Array } | { status: "pending", pending: object, messages: Array }}
  */
 export async function runAgent(userId, userMessage, onEvent, history = []) {
+  // 不把要求披露内部实现的请求交给模型，避免依赖模型自行遵守保密规则。
+  if (INTERNAL_REQUEST_PATTERN.test(userMessage)) {
+    await emitAsStream(INTERNAL_DISCLOSURE_REPLY, onEvent);
+    onEvent("done", { content: INTERNAL_DISCLOSURE_REPLY });
+    return {
+      status: "done", content: INTERNAL_DISCLOSURE_REPLY,
+      messages: [...history, { role: "user", content: userMessage }, { role: "assistant", content: INTERNAL_DISCLOSURE_REPLY }]
+    };
+  }
   const messages = [
     { role: "system", content: getSystemPrompt() },
     ...history,
@@ -102,23 +123,24 @@ export async function resumeAgent(userId, pending, decision, onEvent, iteration 
         continue;
       }
 
-      onEvent("tool_start", { name: fnName, arguments: fnArgs });
+      fnArgs = normalizeToolArgs(fnName, fnArgs);
+      onEvent("tool_start", { name: displayToolName(fnName), arguments: fnArgs });
 
       const err = validateToolCall(fnName, fnArgs);
       if (err) {
         messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ error: err }) });
-        onEvent("tool_error", { name: fnName, error: err });
+        onEvent("tool_error", { name: displayToolName(fnName), error: err });
         continue;
       }
 
       try {
         const result = await executeTool(userId, fnName, fnArgs);
         messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
-        onEvent("tool_end", { name: fnName, result });
+        onEvent("tool_end", { name: displayToolName(fnName), result });
       } catch (e) {
         log.error(`工具 ${fnName} 执行失败`, e.message);
         messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ error: e.message }) });
-        onEvent("tool_error", { name: fnName, error: e.message });
+        onEvent("tool_error", { name: displayToolName(fnName), error: "操作执行失败" });
       }
     }
   } else {
@@ -127,7 +149,7 @@ export async function resumeAgent(userId, pending, decision, onEvent, iteration 
     for (const tc of toolCalls) {
       const fnName = tc.function.name;
       messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(canceledToolResult(fnName)) });
-      onEvent("tool_canceled", { name: fnName });
+      onEvent("tool_canceled", { name: displayToolName(fnName) });
     }
   }
 
@@ -149,7 +171,8 @@ async function runLoop(userId, messages, onEvent, startIteration) {
       });
     } catch (err) {
       // 400 通常是上下文过长，截断历史后重试一次
-      if (err.status === 400 && messages.length > 5) {
+      const isContextLengthError = err.code === "context_length_exceeded" || /context.*(?:length|token)|(?:length|token).*context/i.test(err.message || "");
+      if (isContextLengthError && messages.length > 5) {
         log.warn(`请求400，上下文过长(${messages.length}条)，截断历史重试`);
         // 保留 system prompt + 最近10条消息
         messages = [messages[0], ...messages.slice(-10)];
@@ -182,6 +205,15 @@ async function runLoop(userId, messages, onEvent, startIteration) {
       if (msg.tool_calls.length > 10) {
         log.warn(`工具调用过多(${msg.tool_calls.length})，仅执行前10个`);
       }
+      // 默认值在确认前固定下来，避免用户跨日确认时账单日期悄然变化。
+      const executableCalls = limited.map((tc) => {
+        try {
+          const argumentsObject = normalizeToolArgs(tc.function.name, JSON.parse(tc.function.arguments));
+          return { ...tc, function: { ...tc.function, arguments: JSON.stringify(argumentsObject) } };
+        } catch {
+          return tc;
+        }
+      });
 
       // 本批次是否包含需要确认的写操作
       const hasConfirmTool = limited.some(tc => CONFIRM_TOOLS.includes(tc.function.name));
@@ -193,7 +225,7 @@ async function runLoop(userId, messages, onEvent, startIteration) {
         const confirmId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         // 并发查询每条待确认操作的详细信息，生成人类可读描述 + 结构化记录列表
         const details = await Promise.all(
-          limited.map(async (tc) => {
+          executableCalls.map(async (tc) => {
             let args = null;
             try { args = JSON.parse(tc.function.arguments); } catch { args = null; }
             return await describeToolCallDetail(userId, tc.function.name, args);
@@ -203,18 +235,18 @@ async function runLoop(userId, messages, onEvent, startIteration) {
         const records = details.map(d => d.record).filter(Boolean);
         onEvent("confirm", {
           confirmId,
-          name: limited.map(tc => tc.function.name).join(", "),
+          name: "账务操作",
           description,
           records,
         });
-        const pending = { confirmId, messages, toolCalls: limited, iteration: i + 1 };
+        const pending = { confirmId, messages, toolCalls: executableCalls, iteration: i + 1 };
         return { status: "pending", pending, messages: messages.slice(1) };
       }
 
       // 无确认工具：正常逐工具执行
-      messages.push({ role: "assistant", content: msg.content || null, tool_calls: limited });
+      messages.push({ role: "assistant", content: msg.content || null, tool_calls: executableCalls });
 
-      for (const tc of limited) {
+      for (const tc of executableCalls) {
         const fnName = tc.function.name;
         let fnArgs;
         try { fnArgs = JSON.parse(tc.function.arguments); } catch { fnArgs = null; }
@@ -225,23 +257,24 @@ async function runLoop(userId, messages, onEvent, startIteration) {
           continue;
         }
 
-        onEvent("tool_start", { name: fnName, arguments: fnArgs });
+        fnArgs = normalizeToolArgs(fnName, fnArgs);
+        onEvent("tool_start", { name: displayToolName(fnName), arguments: fnArgs });
 
         const err = validateToolCall(fnName, fnArgs);
         if (err) {
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ error: err }) });
-          onEvent("tool_error", { name: fnName, error: err });
+          onEvent("tool_error", { name: displayToolName(fnName), error: err });
           continue;
         }
 
         try {
           const result = await executeTool(userId, fnName, fnArgs);
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
-          onEvent("tool_end", { name: fnName, result });
+          onEvent("tool_end", { name: displayToolName(fnName), result });
         } catch (e) {
           log.error(`工具 ${fnName} 执行失败`, e.message);
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ error: e.message }) });
-          onEvent("tool_error", { name: fnName, error: e.message });
+          onEvent("tool_error", { name: displayToolName(fnName), error: "操作执行失败" });
         }
       }
     } else {
@@ -262,7 +295,7 @@ async function runLoop(userId, messages, onEvent, startIteration) {
       // 最终回复 — 此时迭代的 LLM 已生成了完整 content，
       // 无需再调用一次 LLM 重新生成（会带来额外的几秒延迟）。
       // 直接把已生成的内容按小块分片模拟流式输出，实现逐字效果且零额外延迟。
-      const content = msg.content || "";
+      const content = containsInternalOutput(msg.content) ? INTERNAL_DISCLOSURE_REPLY : (msg.content || "");
       await emitAsStream(content, onEvent);
       messages.push({ role: "assistant", content });
       onEvent("done", { content });
@@ -286,6 +319,10 @@ async function describeToolCallDetail(userId, fnName, args) {
     return { description: `执行「${fnName}」操作`, record: null };
   }
   switch (fnName) {
+    case "add_category":
+      return { description: "创建一个新的收支分类", record: null };
+    case "add_record":
+      return { description: `新增账单：日期 ${args.date || "今天"}，金额 ${args.amount ?? "未提供"} 元`, record: null };
     case "delete_record": {
       const rec = await recordsModel.getRecordById(userId, args.id);
       if (rec) {

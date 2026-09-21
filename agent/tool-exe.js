@@ -5,6 +5,7 @@
 import recordsModel from "../models/records.js";
 import categoriesModel from "../models/categories.js";
 import statisticsModel from "../models/statistics.js";
+import { getMonthRange, getShanghaiDate } from "../utils/date.js";
 
 export async function executeTool(userId, name, args) {
   switch (name) {
@@ -34,7 +35,7 @@ async function addCategory(userId, { name, type }) {
 }
 
 async function addRecord(userId, { category_id, amount, type, date, remark }) {
-  const category = await categoriesModel.getCategoryById(category_id);
+  const category = await categoriesModel.getCategoryById(userId, category_id);
   if (!category) return { error: `分类ID ${category_id} 不存在` };
   if (category.type !== type) {
     return { error: `分类"${category.name}"的类型(${category.type})与记录类型(${type})不匹配` };
@@ -46,14 +47,14 @@ async function addRecord(userId, { category_id, amount, type, date, remark }) {
   };
 }
 
-async function queryRecords(userId, { start, end, type, page = 1, pageSize = 10 }) {
-  const size = Math.min(Math.max(1, parseInt(pageSize) || 10), 50);
+async function queryRecords(userId, { start, end, month, type, page = 1, pageSize = 50 }) {
+  if (month) ({ start, end } = getMonthRange(month));
+  const size = Math.min(Math.max(1, parseInt(pageSize) || 50), 100);
   const pageNum = Math.max(1, parseInt(page) || 1);
   const offset = (pageNum - 1) * size;
-  const total = await recordsModel.getRecordsCount(userId, start, end);
-  let records = await recordsModel.getRecords(userId, start, end, offset, size);
-  if (type) records = records.filter(r => r.type === type);
-  return { total: type ? records.length : total, page: pageNum, pageSize: size, records };
+  const total = await recordsModel.getRecordsCount(userId, start, end, type);
+  const records = await recordsModel.getRecords(userId, start, end, offset, size, type);
+  return { total, page: pageNum, pageSize: size, totalPages: Math.ceil(total / size), hasMore: offset + records.length < total, records };
 }
 
 async function updateRecord(userId, { id, ...updates }) {
@@ -67,7 +68,7 @@ async function updateRecord(userId, { id, ...updates }) {
     remark: updates.remark !== undefined ? updates.remark : existing.remark
   };
   if (updates.category_id) {
-    const category = await categoriesModel.getCategoryById(updates.category_id);
+    const category = await categoriesModel.getCategoryById(userId, updates.category_id);
     if (!category) return { error: `分类ID ${updates.category_id} 不存在` };
     if (category.type !== merged.type) return { error: "分类类型与记录类型不匹配" };
   }
@@ -96,7 +97,7 @@ async function getStatistics(userId, { type, date, month, days }) {
     }
     case "trend": {
       const n = days || 7;
-      return { type: "trend", days: n, data: await statisticsModel.getTrendStatistics(userId, n) };
+      return { type: "trend", days: n, today: getShanghaiDate(), data: await statisticsModel.getTrendStatistics(userId, n) };
     }
     default: return { error: `不支持的统计类型: ${type}` };
   }

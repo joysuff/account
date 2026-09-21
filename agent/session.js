@@ -1,6 +1,8 @@
 /**
  * Agent会话管理 — 内存存储多轮对话历史
  */
+import { randomUUID } from "node:crypto";
+
 const sessions = new Map();
 const TTL = 30 * 60 * 1000; // 30分钟过期
 
@@ -14,7 +16,7 @@ setInterval(() => {
 
 /** 创建新会话，返回sessionId */
 export function createSession(userId) {
-  const id = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = randomUUID();
   sessions.set(id, { userId, messages: [], pending: null, lastAccess: Date.now() });
   return id;
 }

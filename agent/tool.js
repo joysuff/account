@@ -38,10 +38,10 @@ export const tools = [
           category_id: { type: "integer", description: "分类ID（从get_categories获取）" },
           amount: { type: "number", description: "金额，单位：元，必须大于0" },
           type: { type: "string", enum: ["income", "expense"], description: "记录类型，必须与分类类型一致" },
-          date: { type: "string", description: "日期，格式YYYY-MM-DD，默认今天" },
+          date: { type: "string", description: "日期，格式YYYY-MM-DD；未提供时服务端使用当前上海日期" },
           remark: { type: "string", description: "备注信息，可选" }
         },
-        required: ["category_id", "amount", "type", "date"]
+        required: ["category_id", "amount", "type"]
       }
     }
   },
@@ -55,9 +55,10 @@ export const tools = [
         properties: {
           start: { type: "string", description: "查询开始日期，格式YYYY-MM-DD，可选" },
           end: { type: "string", description: "查询结束日期，格式YYYY-MM-DD，可选" },
+          month: { type: "string", description: "查询整月，格式YYYY-MM；与start/end不能同时使用" },
           type: { type: "string", enum: ["income", "expense"], description: "按类型筛选，可选" },
           page: { type: "integer", description: "页码，从1开始，默认1" },
-          pageSize: { type: "integer", description: "每页条数，默认10，最大50" }
+          pageSize: { type: "integer", description: "每页条数，默认50，最大100；响应中hasMore为true时必须继续分页后才能断言未找到" }
         },
         required: []
       }
