@@ -62,7 +62,8 @@ export const chat = async (req, res) => {
       const decision = action === "confirm" ? "confirm" : "cancel";
       log.info(`Agent确认操作: ${decision} (${pending.confirmId})`);
 
-      const result = await resumeAgent(userId, pending, decision, onEvent, pending.iteration ?? 0);
+      // 挂起阶段已把 usage 持久化过，恢复后从 0 重新累计，避免重复统计
+      const result = await resumeAgent(userId, pending, decision, onEvent, pending.iteration ?? 0, null);
 
       // 恢复执行完成后清除挂起状态并更新历史
       if (result.status === "done") {

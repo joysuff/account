@@ -14,7 +14,10 @@ import { getSystemPrompt } from "./prompt.js";
 import { tools } from "./tool.js";
 import { executeTool } from "./tool-exe.js";
 import { normalizeToolArgs, validateToolCall } from "./safety.js";
+import { getShanghaiDate } from "../utils/date.js";
 import recordsModel from "../models/records.js";
+import categoriesModel from "../models/categories.js";
+import userModel from "../models/user.js";
 import log from "../utils/log.js";
 
 dotenv.config();
@@ -89,7 +92,7 @@ export async function runAgent(userId, userMessage, onEvent, history = []) {
     { role: "user", content: userMessage }
   ];
 
-  return runLoop(userId, messages, onEvent, 0);
+  return runLoop(userId, messages, onEvent, 0, null);
 }
 
 /**
@@ -99,7 +102,7 @@ export async function runAgent(userId, userMessage, onEvent, history = []) {
  * @param {function} onEvent - 同 runAgent
  * @param {number} iteration - 已用迭代次数（继续计数，防超限）
  */
-export async function resumeAgent(userId, pending, decision, onEvent, iteration = 0) {
+export async function resumeAgent(userId, pending, decision, onEvent, iteration = 0, carriedUsage = null) {
   const { messages, toolCalls } = pending;
   // 重建 assistant 工具调用消息（格式与 OpenAI 一致）
   const assistantToolCalls = toolCalls.map(tc => ({
@@ -153,13 +156,30 @@ export async function resumeAgent(userId, pending, decision, onEvent, iteration 
     }
   }
 
-  return runLoop(userId, messages, onEvent, iteration);
+  return runLoop(userId, messages, onEvent, iteration, carriedUsage);
+}
+
+/**
+ * 挂起前把本轮已消耗的 token 一次性写入用户累计（挂起/取消/失败都不重复统计）。
+ */
+async function persistUsage(userId, accumulatedUsage) {
+  if (!accumulatedUsage || (accumulatedUsage.input + accumulatedUsage.output === 0)) return;
+  try {
+    await userModel.addTokenUsage(userId, {
+      input_tokens: accumulatedUsage.input,
+      output_tokens: accumulatedUsage.output,
+      total_tokens: accumulatedUsage.total,
+    });
+  } catch (e) {
+    log.error("token用量累加失败:", e.message);
+  }
 }
 
 /**
  * Agent 核心循环。返回 done（最终回复）或 pending（待用户确认写操作）。
  */
-async function runLoop(userId, messages, onEvent, startIteration) {
+async function runLoop(userId, messages, onEvent, startIteration, accumulatedUsage = null) {
+  const usage = accumulatedUsage ? { ...accumulatedUsage } : { input: 0, output: 0, total: 0 };
   for (let i = startIteration; i < MAX_ITERATIONS; i++) {
     let response;
     try {
@@ -194,6 +214,9 @@ async function runLoop(userId, messages, onEvent, startIteration) {
       log.info(
         `迭代${i + 1} Token: 输入${response.usage.prompt_tokens} | 输出${response.usage.completion_tokens} | 合计${response.usage.total_tokens}`
       );
+      usage.input += response.usage.prompt_tokens || 0;
+      usage.output += response.usage.completion_tokens || 0;
+      usage.total += response.usage.total_tokens || 0;
     }
 
     // 有工具调用
@@ -240,7 +263,8 @@ async function runLoop(userId, messages, onEvent, startIteration) {
           records,
         });
         const pending = { confirmId, messages, toolCalls: executableCalls, iteration: i + 1 };
-        return { status: "pending", pending, messages: messages.slice(1) };
+        await persistUsage(userId, usage);
+        return { status: "pending", pending, messages: messages.slice(1), usage };
       }
 
       // 无确认工具：正常逐工具执行
@@ -299,7 +323,8 @@ async function runLoop(userId, messages, onEvent, startIteration) {
       await emitAsStream(content, onEvent);
       messages.push({ role: "assistant", content });
       onEvent("done", { content });
-      return { status: "done", content, messages: messages.slice(1) };
+      await persistUsage(userId, usage);
+      return { status: "done", content, messages: messages.slice(1), usage };
     }
   }
 
@@ -307,7 +332,8 @@ async function runLoop(userId, messages, onEvent, startIteration) {
   const fallback = "抱歉，处理您的请求时遇到了一些问题，请尝试简化描述后重试。";
   onEvent("text", { delta: fallback });
   onEvent("done", { content: fallback });
-  return { status: "done", content: fallback, messages: messages.slice(1) };
+  await persistUsage(userId, usage);
+  return { status: "done", content: fallback, messages: messages.slice(1), usage };
 }
 
 /**
@@ -319,10 +345,44 @@ async function describeToolCallDetail(userId, fnName, args) {
     return { description: `执行「${fnName}」操作`, record: null };
   }
   switch (fnName) {
-    case "add_category":
-      return { description: "创建一个新的收支分类", record: null };
-    case "add_record":
-      return { description: `新增账单：日期 ${args.date || "今天"}，金额 ${args.amount ?? "未提供"} 元`, record: null };
+    case "add_category": {
+      const typeLabel = args.type === "income" ? "收入" : args.type === "expense" ? "支出" : "未知";
+      const name = args.name || "未提供";
+      const description = `创建${typeLabel}分类「${name}」`;
+      return {
+        description,
+        record: {
+          action: "新增",
+          category: name,
+          type: args.type || "expense",
+          typeLabel: typeLabel === "未知" ? "支出" : typeLabel,
+          remark: "将创建新分类",
+        },
+      };
+    }
+    case "add_record": {
+      const category = Number.isInteger(args.category_id)
+        ? await categoriesModel.getCategoryById(userId, args.category_id)
+        : null;
+      const categoryLabel = category ? category.name : `ID ${args.category_id ?? "未知"}`;
+      const record = {
+        action: "新增",
+        date: args.date || getShanghaiDate(),
+        category: categoryLabel,
+        type: args.type || "expense",
+        typeLabel: args.type === "income" ? "收入" : "支出",
+        amount: `${(args.type === "income" ? "+" : "-")}${args.amount ?? "未提供"}`,
+        remark: args.remark || "",
+      };
+      const description = formatRecordDescription("新增", {
+        date: record.date,
+        type: record.type,
+        amount: String(args.amount ?? "未提供"),
+        remark: record.remark || null,
+        category: { name: categoryLabel },
+      });
+      return { description, record };
+    }
     case "delete_record": {
       const rec = await recordsModel.getRecordById(userId, args.id);
       if (rec) {

@@ -82,7 +82,18 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// 修改密码
+// 获取当前登录用户的 token 累计用量
+export const getTokenUsage = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const usage = await userModel.getTokenUsage(userId);
+    return success(res, 200, '获取token用量成功', usage);
+  } catch (err) {
+    log.error('获取token用量失败:', err.message);
+    return error(res, 500, '获取token用量失败');
+  }
+};
+
 export const updatePassword = async (req, res) => {
   try {
     const userId = req.user.userId;
